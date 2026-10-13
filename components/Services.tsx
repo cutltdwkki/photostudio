@@ -1,15 +1,25 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
+
+type ServiceId = "rent" | "photographer" | "zone";
 
 type ServiceItem = {
-  id: string;
+  id: ServiceId;
+  category: string;
   title: string;
   text: string;
+  priceLabel: string;
+  priceValue: number;
   image: string;
   imageAlt: string;
-  /** Wire up when a detail page exists */
-  href?: string;
 };
 
 const imagePath = (filename: string) =>
@@ -18,37 +28,240 @@ const imagePath = (filename: string) =>
 const SERVICES: ServiceItem[] = [
   {
     id: "rent",
+    category: "Аренда пространства",
     title: "Аренда студии",
-    text: "Пространство для твоей съёмки и собственных идей.",
+    text: "Твоё пространство для съёмок, экспериментов со светом и собственных идей. Выбирай нужную дату, привози команду и работай в своём ритме.",
+    priceLabel: "1 990 ₽ / ЧАС",
+    priceValue: 1990,
     image: imagePath("Аренда студии.jpg"),
-    imageAlt: "Аренда студии — пространство для съёмки",
+    imageAlt: "Аренда студии — интерьер пространства",
   },
   {
     id: "photographer",
+    category: "Съёмка под ключ",
     title: "Студия с фотографом",
-    text: "Съёмка с фотографом для тех, кто хочет получить готовые кадры.",
+    text: "Тебе не нужно думать о настройках камеры и свете. Фотограф поможет с позированием, подберёт ракурсы и создаст кадры, которые захочется сохранить.",
+    priceLabel: "6 990 ₽ / ЧАС",
+    priceValue: 6990,
     image: imagePath("Студия с фотографом.png"),
-    imageAlt: "Студия с фотографом — готовые кадры",
+    imageAlt: "Студия с фотографом — съёмка в кадре",
   },
   {
     id: "zone",
+    category: "Готовая локация",
     title: "Фотозона",
-    text: "Выбери подходящее пространство для своего визуального замысла.",
+    text: "Выбирай подходящий интерьер для портретов, контента и небольших проектов. Готовая композиция, красивый свет и пространство, в котором легко воплотить свою идею.",
+    priceLabel: "1 490 ₽ / ЧАС",
+    priceValue: 1490,
     image: imagePath("Фотозона2.jpg"),
-    imageAlt: "Фотозона — пространство для визуального замысла",
+    imageAlt: "Фотозона — готовая локация",
   },
 ];
 
-function useScrollReveal<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
+/** Fixed demo range: 13 Oct 2026 → 12 Nov 2026 */
+const RANGE_START = new Date(2026, 9, 13);
+const RANGE_END = new Date(2026, 10, 12);
+
+const MONTH_GENITIVE = [
+  "ЯНВАРЯ",
+  "ФЕВРАЛЯ",
+  "МАРТА",
+  "АПРЕЛЯ",
+  "МАЯ",
+  "ИЮНЯ",
+  "ИЮЛЯ",
+  "АВГУСТА",
+  "СЕНТЯБРЯ",
+  "ОКТЯБРЯ",
+  "НОЯБРЯ",
+  "ДЕКАБРЯ",
+] as const;
+
+function addDays(date: Date, amount: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function toISODate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+type MonthGroup = {
+  key: string;
+  label: string;
+  days: Date[];
+};
+
+function buildFixedRange(): MonthGroup[] {
+  const groups: MonthGroup[] = [];
+  const map = new Map<string, MonthGroup>();
+  let day = new Date(RANGE_START);
+
+  while (day.getTime() <= RANGE_END.getTime()) {
+    const key = `${day.getFullYear()}-${day.getMonth()}`;
+    let group = map.get(key);
+    if (!group) {
+      group = {
+        key,
+        label: MONTH_GENITIVE[day.getMonth()],
+        days: [],
+      };
+      map.set(key, group);
+      groups.push(group);
+    }
+    group.days.push(new Date(day));
+    day = addDays(day, 1);
+  }
+
+  return groups;
+}
+
+const CALENDAR_GROUPS = buildFixedRange();
+
+function ServiceCalendar({
+  serviceId,
+  selected,
+  onSelect,
+}: {
+  serviceId: ServiceId;
+  selected: string | null;
+  onSelect: (iso: string) => void;
+}) {
+  return (
+    <div className="services__calendar" data-service={serviceId}>
+      {CALENDAR_GROUPS.map((group) => (
+        <div key={group.key} className="services__calendar-month">
+          <p className="services__calendar-label">{group.label}</p>
+          <div className="services__calendar-days" role="listbox" aria-label={group.label}>
+            {group.days.map((day) => {
+              const iso = toISODate(day);
+              const selectedDay = selected === iso;
+              return (
+                <button
+                  key={iso}
+                  type="button"
+                  role="option"
+                  aria-selected={selectedDay}
+                  className={`services__day${selectedDay ? " is-selected" : ""}`}
+                  onClick={() => onSelect(iso)}
+                >
+                  {day.getDate()}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      {/* TODO: replace demo availability with real booking availability API */}
+    </div>
+  );
+}
+
+function ServiceRow({
+  service,
+  selectedDate,
+  onSelectDate,
+  stagger,
+}: {
+  service: ServiceItem;
+  selectedDate: string | null;
+  onSelectDate: (iso: string) => void;
+  stagger: string;
+}) {
+  const bookHref = useMemo(() => {
+    const params = new URLSearchParams({
+      service: service.id,
+      price: String(service.priceValue),
+    });
+    if (selectedDate) params.set("date", selectedDate);
+    return `/?${params.toString()}#booking`;
+  }, [service.id, service.priceValue, selectedDate]);
+
+  const onBookClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    try {
+      sessionStorage.setItem(
+        "photodream-booking",
+        JSON.stringify({
+          serviceId: service.id,
+          title: service.title,
+          date: selectedDate,
+          price: service.priceValue,
+          priceLabel: service.priceLabel,
+        }),
+      );
+    } catch {
+      /* ignore quota / private mode */
+    }
+    if (!selectedDate) {
+      event.preventDefault();
+    }
+  };
+
+  return (
+    <article
+      className="services__row services-reveal services-reveal--row"
+      style={{ ["--services-stagger" as string]: stagger }}
+    >
+      <p className="services__category">{service.category}</p>
+
+      <div className="services__info">
+        <h3 className="services__title">{service.title}</h3>
+        <p className="services__text">{service.text}</p>
+        <ServiceCalendar
+          serviceId={service.id}
+          selected={selectedDate}
+          onSelect={onSelectDate}
+        />
+      </div>
+
+      <div className="services__media" aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={service.image}
+          alt=""
+          className="services__image"
+          width={300}
+          height={370}
+        />
+      </div>
+
+      <div className="services__aside">
+        <p className="services__price">{service.priceLabel}</p>
+        <a
+          href={bookHref}
+          className="services__book"
+          onClick={onBookClick}
+          aria-disabled={!selectedDate}
+        >
+          ЗАБРОНИРОВАТЬ
+        </a>
+      </div>
+    </article>
+  );
+}
+
+export default function Services() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [selectedByService, setSelectedByService] = useState<
+    Partial<Record<ServiceId, string>>
+  >({});
+
+  const selectDate = useCallback((id: ServiceId, iso: string) => {
+    setSelectedByService((prev) => ({ ...prev, [id]: iso }));
+  }, []);
 
   useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
+    const section = sectionRef.current;
+    if (!section) return;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
-      node.classList.add("is-visible");
+      setRevealed(true);
       return;
     }
 
@@ -56,133 +269,42 @@ function useScrollReveal<T extends HTMLElement>() {
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            node.classList.add("is-visible");
-            observer.unobserve(node);
+            setRevealed(true);
+            observer.disconnect();
           }
         }
       },
-      { threshold: 0.16, rootMargin: "0px 0px -6% 0px" },
+      { threshold: 0.18, rootMargin: "0px 0px -8% 0px" },
     );
 
-    observer.observe(node);
+    observer.observe(section);
     return () => observer.disconnect();
   }, []);
 
-  return ref;
-}
-
-function Reveal({
-  className,
-  children,
-}: {
-  className: string;
-  children: ReactNode;
-}) {
-  const ref = useScrollReveal<HTMLDivElement>();
-  return (
-    <div ref={ref} className={className}>
-      {children}
-    </div>
-  );
-}
-
-function ServiceMore({ href, label = "Подробнее" }: { href?: string; label?: string }) {
-  const content = (
-    <>
-      {label}
-      <span className="services__more-arrow" aria-hidden="true">
-        →
-      </span>
-    </>
-  );
-
-  if (href) {
-    return (
-      <a className="services__more" href={href}>
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <button type="button" className="services__more" disabled aria-disabled="true">
-      {content}
-    </button>
-  );
-}
-
-export default function Services() {
   return (
     <section
+      ref={sectionRef}
       id="services"
-      className="services site-section"
-      aria-labelledby="services-heading"
+      className={`services site-section${revealed ? " is-revealed" : ""}`}
+      aria-label="Услуги и бронирование"
     >
-      <div className="site-grid services__grid">
-        <Reveal className="services__intro services-reveal services-reveal--from-left">
-          <div className="services__heading-group">
-            <h2 id="services-heading" className="services__heading">
-              Выбирай свой формат
-            </h2>
-            <span
-              className="heading-rule services__heading-rule"
-              aria-hidden="true"
-            />
-          </div>
-          <p className="services__lead">
-            Всё необходимое для съёмки –
-            <br />
-            в одном пространстве.
-          </p>
-        </Reveal>
+      <h2
+        id="services-heading"
+        className="services__heading services-reveal services-reveal--heading"
+      >
+        ПРОСТРАНСТВО ДЛЯ ТВОЕЙ СЪЁМКИ
+      </h2>
 
-        <Reveal className="services__item services__item--1 services-reveal services-reveal--from-left">
-          <div className="services__media">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={SERVICES[0].image}
-              alt={SERVICES[0].imageAlt}
-              className="services__image"
-            />
-          </div>
-          <div className="services__body">
-            <h3 className="services__title">{SERVICES[0].title}</h3>
-            <p className="services__text">{SERVICES[0].text}</p>
-            <ServiceMore href={SERVICES[0].href} />
-          </div>
-        </Reveal>
-
-        <Reveal className="services__item services__item--2 services-reveal services-reveal--from-right">
-          <div className="services__media">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={SERVICES[1].image}
-              alt={SERVICES[1].imageAlt}
-              className="services__image"
-            />
-          </div>
-          <div className="services__body">
-            <h3 className="services__title">{SERVICES[1].title}</h3>
-            <p className="services__text">{SERVICES[1].text}</p>
-            <ServiceMore href={SERVICES[1].href} />
-          </div>
-        </Reveal>
-
-        <Reveal className="services__item services__item--3 services-reveal services-reveal--from-up">
-          <div className="services__media services__media--wide">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={SERVICES[2].image}
-              alt={SERVICES[2].imageAlt}
-              className="services__image"
-            />
-          </div>
-          <div className="services__body services__body--wide">
-            <h3 className="services__title">{SERVICES[2].title}</h3>
-            <p className="services__text">{SERVICES[2].text}</p>
-            <ServiceMore href={SERVICES[2].href} />
-          </div>
-        </Reveal>
+      <div className="services__list">
+        {SERVICES.map((service, index) => (
+          <ServiceRow
+            key={service.id}
+            service={service}
+            selectedDate={selectedByService[service.id] ?? null}
+            onSelectDate={(iso) => selectDate(service.id, iso)}
+            stagger={`${120 + index * 130}ms`}
+          />
+        ))}
       </div>
     </section>
   );

@@ -2,12 +2,18 @@
 
 import { useEffect, useId, useState } from "react";
 
+/* Replace href values with real profile URLs when ready */
+const SOCIAL_LINKS = [
+  { href: "#", label: "INSTAGRAM*" },
+  { href: "#", label: "TELEGRAM" },
+  { href: "#", label: "VKONTAKTE" },
+] as const;
+
 const NAV_LINKS = [
-  { href: "#studio", label: "Студия" },
-  { href: "#services", label: "Услуги" },
-  { href: "#prices", label: "Цены" },
-  { href: "#gallery", label: "Галерея" },
-  { href: "#reviews", label: "Отзывы" },
+  { href: "#services", label: "УСЛУГИ" },
+  { href: "#gallery", label: "ГАЛЕРЕЯ" },
+  { href: "#reviews", label: "ОТЗЫВЫ" },
+  { href: "#faq", label: "ВОПРОСЫ" },
 ] as const;
 
 export default function Header() {
@@ -56,17 +62,31 @@ export default function Header() {
   const elevated = scrolled || open;
 
   return (
-    <header className={`site-header${elevated ? " is-scrolled" : ""}`}>
-      <div className="site-header__inner">
-        <a href="#top" className="site-logo" onClick={closeMenu}>
-          STUDIO 01
-        </a>
+    <header
+      className={`site-header hero-reveal${elevated ? " is-scrolled" : ""}`}
+    >
+      <div className="site-header__bar">
+        <ul className="site-header__socials" aria-label="Социальные сети">
+          {SOCIAL_LINKS.map((link) => (
+            <li key={link.label} className="site-header__cell">
+              <a
+                href={link.href}
+                className="site-header__cell-link"
+                onClick={(event) => {
+                  if (link.href === "#") event.preventDefault();
+                }}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
 
-        <nav className="site-nav" aria-label="Основная навигация">
-          <ul className="site-nav__list">
+        <nav className="site-header__nav" aria-label="Основная навигация">
+          <ul className="site-header__nav-list">
             {NAV_LINKS.map((link) => (
-              <li key={link.href}>
-                <a href={link.href} className="site-nav__link">
+              <li key={link.href} className="site-header__cell">
+                <a href={link.href} className="site-header__cell-link">
                   {link.label}
                 </a>
               </li>
@@ -74,8 +94,8 @@ export default function Header() {
           </ul>
         </nav>
 
-        <a href="#booking" className="site-header__cta">
-          Забронировать
+        <a href="#top" className="site-header__brand" onClick={closeMenu}>
+          PHOTO DREAM
         </a>
 
         <button
@@ -86,6 +106,7 @@ export default function Header() {
           aria-label={open ? "Закрыть меню" : "Открыть меню"}
           onClick={() => setOpen((value) => !value)}
         >
+          <span className="site-header__menu-label">МЕНЮ</span>
           <span className="site-header__menu-icon" aria-hidden="true">
             <span />
             <span />
@@ -110,12 +131,29 @@ export default function Header() {
               ))}
             </ul>
           </nav>
+          <ul className="site-header__drawer-socials" aria-label="Социальные сети">
+            {SOCIAL_LINKS.map((link) => (
+              <li key={link.label}>
+                <a
+                  href={link.href}
+                  className="site-header__drawer-link"
+                  onClick={(event) => {
+                    closeMenu();
+                    if (link.href === "#") event.preventDefault();
+                  }}
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          {/* Booking form section TBD — temporary anchor */}
           <a
             href="#booking"
             className="site-header__drawer-cta"
             onClick={closeMenu}
           >
-            Забронировать
+            ЗАБРОНИРОВАТЬ →
           </a>
         </div>
       ) : null}
