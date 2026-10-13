@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useSectionReveal } from "@/hooks/useSectionReveal";
 
 type Review = {
   id: string;
@@ -90,48 +92,10 @@ function ReviewPanel({
 }
 
 export default function Reviews() {
-  const sectionRef = useRef<HTMLElement>(null);
+  const { ref: sectionRef, revealed } = useSectionReveal<HTMLElement>();
   const [activeId, setActiveId] = useState(REVIEWS[0].id);
-  const [revealed, setRevealed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 700px)");
   const active = REVIEWS.find((item) => item.id === activeId) ?? REVIEWS[0];
-
-  useEffect(() => {
-    const mobile = window.matchMedia("(max-width: 700px)");
-    const syncMobile = () => setIsMobile(mobile.matches);
-    syncMobile();
-    mobile.addEventListener("change", syncMobile);
-    return () => mobile.removeEventListener("change", syncMobile);
-  }, []);
-
-  useEffect(() => {
-    const node = sectionRef.current;
-    if (!node) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setRevealed(true);
-      return;
-    }
-
-    const rect = node.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 0.88 && rect.bottom > 0) {
-      setRevealed(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        setRevealed(true);
-        observer.disconnect();
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -4% 0px" },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
 
   const activate = (id: string) => {
     setActiveId(id);

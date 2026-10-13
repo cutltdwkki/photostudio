@@ -2,12 +2,11 @@
 
 import {
   useCallback,
-  useEffect,
   useMemo,
-  useRef,
   useState,
   type MouseEvent,
 } from "react";
+import { useSectionReveal } from "@/hooks/useSectionReveal";
 
 type ServiceId = "rent" | "photographer" | "zone";
 
@@ -58,69 +57,38 @@ const SERVICES: ServiceItem[] = [
   },
 ];
 
-/** Fixed demo range: 13 Oct 2026 → 12 Nov 2026 */
-const RANGE_START = new Date(2026, 9, 13);
-const RANGE_END = new Date(2026, 10, 12);
+/** Fixed demo range as static ISO days — no `Date` (avoids SSR/client timezone drift). */
+type CalendarDay = { iso: string; label: number };
+type MonthGroup = { key: string; label: string; days: CalendarDay[] };
 
-const MONTH_GENITIVE = [
-  "ЯНВАРЯ",
-  "ФЕВРАЛЯ",
-  "МАРТА",
-  "АПРЕЛЯ",
-  "МАЯ",
-  "ИЮНЯ",
-  "ИЮЛЯ",
-  "АВГУСТА",
-  "СЕНТЯБРЯ",
-  "ОКТЯБРЯ",
-  "НОЯБРЯ",
-  "ДЕКАБРЯ",
-] as const;
-
-function addDays(date: Date, amount: number) {
-  const next = new Date(date);
-  next.setDate(next.getDate() + amount);
-  return next;
-}
-
-function toISODate(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-type MonthGroup = {
-  key: string;
-  label: string;
-  days: Date[];
-};
-
-function buildFixedRange(): MonthGroup[] {
-  const groups: MonthGroup[] = [];
-  const map = new Map<string, MonthGroup>();
-  let day = new Date(RANGE_START);
-
-  while (day.getTime() <= RANGE_END.getTime()) {
-    const key = `${day.getFullYear()}-${day.getMonth()}`;
-    let group = map.get(key);
-    if (!group) {
-      group = {
-        key,
-        label: MONTH_GENITIVE[day.getMonth()],
-        days: [],
-      };
-      map.set(key, group);
-      groups.push(group);
-    }
-    group.days.push(new Date(day));
-    day = addDays(day, 1);
+function buildMonthDays(
+  year: number,
+  month: number,
+  fromDay: number,
+  toDay: number,
+): CalendarDay[] {
+  const days: CalendarDay[] = [];
+  for (let day = fromDay; day <= toDay; day += 1) {
+    days.push({
+      iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      label: day,
+    });
   }
-
-  return groups;
+  return days;
 }
 
-const CALENDAR_GROUPS = buildFixedRange();
+const CALENDAR_GROUPS: MonthGroup[] = [
+  {
+    key: "2026-10",
+    label: "ОКТЯБРЯ",
+    days: buildMonthDays(2026, 10, 13, 31),
+  },
+  {
+    key: "2026-11",
+    label: "НОЯБРЯ",
+    days: buildMonthDays(2026, 11, 1, 12),
+  },
+];
 
 function ServiceCalendar({
   serviceId,
@@ -138,18 +106,17 @@ function ServiceCalendar({
           <p className="services__calendar-label">{group.label}</p>
           <div className="services__calendar-days" role="listbox" aria-label={group.label}>
             {group.days.map((day) => {
-              const iso = toISODate(day);
-              const selectedDay = selected === iso;
+              const selectedDay = selected === day.iso;
               return (
                 <button
-                  key={iso}
+                  key={day.iso}
                   type="button"
                   role="option"
                   aria-selected={selectedDay}
                   className={`services__day${selectedDay ? " is-selected" : ""}`}
-                  onClick={() => onSelect(iso)}
+                  onClick={() => onSelect(day.iso)}
                 >
-                  {day.getDate()}
+                  {day.label}
                 </button>
               );
             })}
@@ -245,40 +212,17 @@ function ServiceRow({
 }
 
 export default function Services() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const [revealed, setRevealed] = useState(false);
+  const { ref: sectionRef, revealed } = useSectionReveal<HTMLElement>({
+    threshold: 0.18,
+    rootMargin: "0px 0px -8% 0px",
+    visibleTopRatio: 0.85,
+  });
   const [selectedByService, setSelectedByService] = useState<
     Partial<Record<ServiceId, string>>
   >({});
 
   const selectDate = useCallback((id: ServiceId, iso: string) => {
     setSelectedByService((prev) => ({ ...prev, [id]: iso }));
-  }, []);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setRevealed(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setRevealed(true);
-            observer.disconnect();
-          }
-        }
-      },
-      { threshold: 0.18, rootMargin: "0px 0px -8% 0px" },
-    );
-
-    observer.observe(section);
-    return () => observer.disconnect();
   }, []);
 
   return (

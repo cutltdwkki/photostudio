@@ -7,6 +7,7 @@ import {
   useState,
   useEffectEvent,
 } from "react";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 type BurstPhoto = {
   id: string;
@@ -172,8 +173,8 @@ function easeOutCubic(t: number) {
 export default function Booking() {
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [progress, setProgress] = useState(0);
-  const [reduceMotion, setReduceMotion] = useState(false);
   const [form, setForm] = useState<FormState>({
     name: "",
     phone: "",
@@ -204,10 +205,8 @@ export default function Booking() {
   });
 
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduceMotion(reduce.matches);
-    if (reduce.matches) {
-      setProgress(1);
+    if (reduceMotion) {
+      queueMicrotask(() => setProgress(1));
       return;
     }
 
@@ -217,18 +216,16 @@ export default function Booking() {
       frame = requestAnimationFrame(() => updateProgress());
     };
 
-    updateProgress();
+    frame = requestAnimationFrame(() => updateProgress());
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
-    reduce.addEventListener("change", onScroll);
 
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
-      reduce.removeEventListener("change", onScroll);
     };
-  }, []);
+  }, [reduceMotion]);
 
   useEffect(() => {
     try {
@@ -245,11 +242,13 @@ export default function Booking() {
         data.priceLabel ? `Тариф: ${data.priceLabel}` : null,
       ].filter(Boolean);
       if (parts.length === 0) return;
-      setForm((prev) =>
-        prev.comment.trim()
-          ? prev
-          : { ...prev, comment: parts.join(". ") },
-      );
+      queueMicrotask(() => {
+        setForm((prev) =>
+          prev.comment.trim()
+            ? prev
+            : { ...prev, comment: parts.join(". ") },
+        );
+      });
     } catch {
       /* ignore */
     }

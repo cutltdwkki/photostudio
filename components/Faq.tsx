@@ -83,29 +83,43 @@ export default function Faq() {
     const node = sectionRef.current;
     if (!node) return;
 
+    let cancelled = false;
+    const reveal = () => {
+      queueMicrotask(() => {
+        if (!cancelled) setRevealed(true);
+      });
+    };
+
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) {
-      setRevealed(true);
-      return;
+      reveal();
+      return () => {
+        cancelled = true;
+      };
     }
 
     const rect = node.getBoundingClientRect();
     if (rect.top < window.innerHeight * 0.88 && rect.bottom > 0) {
-      setRevealed(true);
-      return;
+      reveal();
+      return () => {
+        cancelled = true;
+      };
     }
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return;
-        setRevealed(true);
+        reveal();
         observer.disconnect();
       },
       { threshold: 0.12, rootMargin: "0px 0px -4% 0px" },
     );
 
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+    };
   }, []);
 
   /* Lock photo height to the closed FAQ list — don't grow when an answer opens */

@@ -50,7 +50,7 @@ export default function Header() {
       frame = window.requestAnimationFrame(update);
     };
 
-    update();
+    frame = window.requestAnimationFrame(update);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useSectionReveal } from "@/hooks/useSectionReveal";
 
 const NAV_LINKS = [
   { href: "#services", label: "Услуги" },
@@ -9,48 +9,15 @@ const NAV_LINKS = [
   { href: "#faq", label: "Вопросы" },
 ] as const;
 
+/** Static copyright year — avoid `new Date()` in Client Components (Next.js prerender). */
+const COPYRIGHT_YEAR = 2026;
+
 export default function Footer() {
-  const footerRef = useRef<HTMLElement>(null);
-  const [revealed, setRevealed] = useState(false);
-  const year = new Date().getFullYear();
-
-  useEffect(() => {
-    const node = footerRef.current;
-    if (!node) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (reduce.matches) {
-      setRevealed(true);
-      return;
-    }
-
-    let armed = false;
-
-    const reveal = () => {
-      if (armed) return;
-      armed = true;
-      setRevealed(true);
-    };
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        reveal();
-        observer.disconnect();
-      },
-      { threshold: 0.06, rootMargin: "0px 0px 0px 0px" },
-    );
-
-    observer.observe(node);
-
-    const rect = node.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 0.95 && rect.bottom > 0) {
-      reveal();
-      observer.disconnect();
-    }
-
-    return () => observer.disconnect();
-  }, []);
+  const { ref: footerRef, revealed } = useSectionReveal<HTMLElement>({
+    threshold: 0.06,
+    rootMargin: "0px 0px 0px 0px",
+    visibleTopRatio: 0.95,
+  });
 
   return (
     <footer
@@ -68,7 +35,7 @@ export default function Footer() {
               Пространство для съёмок, экспериментов и идей, которые хочется
               воплотить.
             </p>
-            <p className="site-footer__copy">© {year} PHOTO DREAM</p>
+            <p className="site-footer__copy">© {COPYRIGHT_YEAR} PHOTO DREAM</p>
           </div>
 
           <nav className="site-footer__col" aria-label="Навигация в подвале">

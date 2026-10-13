@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSectionReveal } from "@/hooks/useSectionReveal";
 
 type TimeLeft = {
   days: number;
@@ -22,7 +23,7 @@ const MOSCOW_WEEKDAY: Record<string, number> = {
 };
 
 /** Nearest Sunday 23:59:59 in Europe/Moscow, as UTC ms. Fixed once; does not roll to next week. */
-function getNearestSundayDeadlineMoscowMs(from = new Date()): number {
+function getNearestSundayDeadlineMoscowMs(fromMs: number): number {
   const dtf = new Intl.DateTimeFormat("en-US", {
     timeZone: "Europe/Moscow",
     weekday: "short",
@@ -34,7 +35,7 @@ function getNearestSundayDeadlineMoscowMs(from = new Date()): number {
 
   const parts = Object.fromEntries(
     dtf
-      .formatToParts(from)
+      .formatToParts(new Date(fromMs))
       .filter((part) => part.type !== "literal")
       .map((part) => [part.type, part.value]),
   ) as Record<string, string>;
@@ -72,14 +73,17 @@ function pad2(value: number) {
 }
 
 export default function Cta() {
-  const sectionRef = useRef<HTMLElement>(null);
+  const { ref: sectionRef, revealed } = useSectionReveal<HTMLElement>({
+    threshold: 0.18,
+    rootMargin: "0px 0px -6% 0px",
+    visibleTopRatio: 0.85,
+  });
   const deadlineRef = useRef<number | null>(null);
-  const [revealed, setRevealed] = useState(false);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(ZERO);
   const [ended, setEnded] = useState(false);
 
   useEffect(() => {
-    const deadlineMs = getNearestSundayDeadlineMoscowMs();
+    const deadlineMs = getNearestSundayDeadlineMoscowMs(Date.now());
     deadlineRef.current = deadlineMs;
 
     const tick = () => {
@@ -93,37 +97,6 @@ export default function Cta() {
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, []);
-
-  useEffect(() => {
-    const node = sectionRef.current;
-    if (!node) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setRevealed(true);
-      return;
-    }
-
-    const rect = node.getBoundingClientRect();
-    const alreadyVisible =
-      rect.top < window.innerHeight * 0.85 && rect.bottom > window.innerHeight * 0.1;
-    if (alreadyVisible) {
-      setRevealed(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        setRevealed(true);
-        observer.disconnect();
-      },
-      { threshold: 0.18, rootMargin: "0px 0px -6% 0px" },
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
   }, []);
 
   return (

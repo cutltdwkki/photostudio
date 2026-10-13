@@ -7,6 +7,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { useSectionReveal } from "@/hooks/useSectionReveal";
 
 type Story = {
   id: string;
@@ -82,11 +83,14 @@ const EASE = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 export default function Stories() {
-  const sectionRef = useRef<HTMLElement>(null);
+  const { ref: sectionRef, revealed } = useSectionReveal<HTMLElement>({
+    threshold: 0.22,
+    rootMargin: "0px 0px -6% 0px",
+    visibleTopRatio: 0.85,
+  });
   const viewportRef = useRef<HTMLDivElement>(null);
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(true);
-  const [revealed, setRevealed] = useState(false);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
@@ -133,32 +137,6 @@ export default function Stories() {
     },
     [updateNav],
   );
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setRevealed(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setRevealed(true);
-            observer.disconnect();
-          }
-        }
-      },
-      { threshold: 0.22, rootMargin: "0px 0px -6% 0px" },
-    );
-
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     const el = viewportRef.current;
