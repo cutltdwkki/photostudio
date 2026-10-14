@@ -766,9 +766,60 @@ header .site-header__cell {
     grid-column: 1 / -1;
   }
 
-  .site-header__cell-link {
+  header .site-header__cell-link {
     padding: 0 14px;
     font-size: 12px;
+  }
+
+  @media (max-width: 960px) {
+    .site-header__bar {
+      grid-template-columns: 1fr auto;
+    }
+
+    .site-header__socials,
+    .site-header__nav {
+      display: none;
+    }
+
+    .site-header__bar > .site-header__brand {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+      margin-left: 0;
+      font-size: 17px;
+      letter-spacing: 1.5px;
+    }
+
+    .site-header__bar > .site-header__menu-toggle {
+      display: inline-flex;
+      width: auto;
+      min-height: var(--header-height);
+      height: 100%;
+      margin-right: 0;
+      padding-block: 0;
+      padding-inline: 14px 0;
+      justify-content: flex-end;
+      border-left: 1px solid var(--line);
+    }
+
+    .site-header__menu-label {
+      display: inline;
+    }
+
+    .site-header__menu-icon {
+      display: none;
+    }
+
+    .site-header__drawer {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      padding: 16px var(--page-gutter) 28px;
+      background: rgba(10, 10, 10, 0.94);
+      border-top: 1px solid var(--line);
+      backdrop-filter: blur(14px) saturate(1.1);
+      -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    }
   }
 
   .site-header__socials .site-header__cell:first-child .site-header__cell-link {
@@ -1867,13 +1918,50 @@ header .site-header__cell {
 
 @media (max-width: 1099px) {
   .services__row {
-    grid-template-columns:
-      minmax(100px, 0.75fr)
-      minmax(220px, 1.4fr)
-      minmax(180px, 220px)
-      minmax(120px, 0.7fr);
-    column-gap: 18px;
+    grid-template-columns: minmax(0, 1fr) minmax(168px, 220px);
+    grid-template-areas:
+      "category media"
+      "info media"
+      "aside media";
+    column-gap: 24px;
+    row-gap: 14px;
+    align-items: stretch;
     padding-block: 28px;
+  }
+
+  .services__category {
+    grid-area: category;
+    align-self: start;
+  }
+
+  .services__info {
+    grid-area: info;
+    align-self: start;
+  }
+
+  .services__media {
+    grid-area: media;
+    align-self: stretch;
+    min-height: 240px;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .services__image {
+    transform: none;
+  }
+
+  .services__aside {
+    grid-area: aside;
+    align-self: start;
+    align-items: flex-start;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .services__price {
+    white-space: normal;
   }
 
   .services {
@@ -1886,7 +1974,7 @@ header .site-header__cell {
   }
 
   .services__title {
-    font-size: round(nearest, clamp(22px, 3.2vw, 32px), 1px);
+    font-size: round(nearest, clamp(22px, 3vw, 32px), 1px);
   }
 
   .services__text {
@@ -1907,9 +1995,17 @@ header .site-header__cell {
 
   .services__row {
     grid-template-columns: 1fr;
+    grid-template-areas: none;
     row-gap: 18px;
     padding-block: 28px;
     align-items: start;
+  }
+
+  .services__category,
+  .services__info,
+  .services__media,
+  .services__aside {
+    grid-area: auto;
   }
 
   .services__category {
@@ -3748,7 +3844,7 @@ section.booking .booking__heading {
     scale(var(--photo-scale));
 }
 
-@media (max-width: 1099px) {
+@media (max-width: 1099px) and (min-width: 0px) {
   .booking {
     --booking-pad-y: 100px;
   }
@@ -3757,8 +3853,18 @@ section.booking .booking__heading {
     gap: clamp(24px, 4vw, 48px);
   }
 
-  .booking__heading {
+  section.booking .booking__heading {
+    max-width: 100%;
     font-size: round(nearest, var(--section-heading-size-md), 1px);
+  }
+
+  .booking__heading-line {
+    max-width: 100%;
+    overflow-wrap: break-word;
+  }
+
+  .booking__form-title {
+    font-size: round(nearest, clamp(18px, 2.2vw, 24px), 1px);
   }
 
   .booking__form,
