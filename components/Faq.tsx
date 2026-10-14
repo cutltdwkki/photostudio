@@ -35,9 +35,9 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     id: "05",
-    question: "Можно ли арендовать студию вместе с фотографом?",
+    question: "Можно ли снимать контент для коммерческого проекта?",
     answer:
-      "Да, у нас предусмотрен формат съёмки с фотографом. Выбери соответствующую услугу, а детали и время съёмки мы согласуем с тобой.",
+      "Да! Студия подходит для портретов, съёмки одежды, предметного контента, социальных сетей и небольших рекламных проектов. Расскажи нам о своей задаче при бронировании, чтобы мы помогли подготовить пространство.",
   },
   {
     id: "06",
@@ -59,9 +59,9 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     id: "09",
-    question: "Можно ли снимать контент для бренда или коммерческого проекта?",
+    question: "Можно ли арендовать студию вместе с фотографом?",
     answer:
-      "Да! Студия подходит для портретов, съёмки одежды, предметного контента, социальных сетей и небольших рекламных проектов. Расскажи нам о своей задаче при бронировании, чтобы мы помогли подготовить пространство.",
+      "Да, у нас предусмотрен формат съёмки с фотографом. Выбери соответствующую услугу, а детали и время съёмки мы согласуем с тобой.",
   },
   {
     id: "10",
@@ -71,12 +71,15 @@ const FAQ_ITEMS: FaqItem[] = [
   },
 ];
 
+const COLUMNS = [
+  FAQ_ITEMS.slice(0, 5),
+  FAQ_ITEMS.slice(5),
+];
+
 export default function Faq() {
   const sectionRef = useRef<HTMLElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-  const mediaRef = useRef<HTMLDivElement>(null);
   const baseId = useId();
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openIds, setOpenIds] = useState<ReadonlySet<string>>(() => new Set());
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
@@ -122,71 +125,13 @@ export default function Faq() {
     };
   }, []);
 
-  /* Lock photo height to the closed FAQ list — don't grow when an answer opens */
-  useEffect(() => {
-    const list = listRef.current;
-    const media = mediaRef.current;
-    if (!list || !media) return;
-
-    const mobileQuery = window.matchMedia("(max-width: 700px)");
-    let lockedHeight: number | null = null;
-
-    const measure = () => {
-      const listBottom = list.getBoundingClientRect().bottom;
-      const mediaTop = media.getBoundingClientRect().top;
-      return Math.max(200, Math.round(listBottom - mediaTop));
-    };
-
-    const apply = (height: number) => {
-      lockedHeight = height;
-      media.style.height = `${height}px`;
-    };
-
-    const lockFromClosedList = () => {
-      if (mobileQuery.matches) {
-        lockedHeight = null;
-        media.style.removeProperty("height");
-        return;
-      }
-      if (list.querySelector(".faq__item.is-open")) return;
-      apply(measure());
-    };
-
-    const onViewportChange = () => {
-      if (mobileQuery.matches) {
-        lockedHeight = null;
-        media.style.removeProperty("height");
-        return;
-      }
-      if (list.querySelector(".faq__item.is-open")) {
-        if (lockedHeight != null) media.style.height = `${lockedHeight}px`;
-        return;
-      }
-      lockedHeight = null;
-      apply(measure());
-    };
-
-    const boot = () => {
-      window.requestAnimationFrame(() => {
-        lockFromClosedList();
-        /* Second pass after fonts/layout settle, still only while collapsed */
-        window.requestAnimationFrame(lockFromClosedList);
-      });
-    };
-
-    boot();
-    void document.fonts?.ready.then(boot);
-    window.addEventListener("resize", onViewportChange);
-    mobileQuery.addEventListener("change", onViewportChange);
-
-    return () => {
-      window.removeEventListener("resize", onViewportChange);
-      mobileQuery.removeEventListener("change", onViewportChange);
-    };
-  }, [revealed]);
-
   const toggle = (id: string) => {
-    setOpenId((current) => (current === id ? null : id));
+    setOpenIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   return (
@@ -196,92 +141,65 @@ export default function Faq() {
       className={`faq${revealed ? " is-revealed" : ""}`}
       aria-labelledby="faq-heading"
     >
-      <div className="faq__inner">
-        <header className="faq__header faq-reveal">
+      <div className="faq__inner site-grid">
+        <header className="faq__header faq-reveal span-12">
           <h2 id="faq-heading" className="faq__heading">
-            <span className="faq__heading-line">Перед тем,</span>
-            <span className="faq__heading-line">как в кадр</span>
+            Перед тем, как в кадр
           </h2>
           <p className="faq__lead">
             Есть вопросы перед съёмкой? Собрали всё, что стоит знать перед тем,
             как включить свет и начать создавать.
           </p>
-
-          <div ref={mediaRef} className="faq__media" aria-hidden="true">
-            <figure className="faq__shot faq__shot--main">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/faq/big.png"
-                alt=""
-                className="faq__shot-image"
-                width={720}
-                height={960}
-                loading="lazy"
-                decoding="async"
-              />
-            </figure>
-            <figure className="faq__shot faq__shot--aside">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/images/faq/small.png"
-                alt=""
-                className="faq__shot-image"
-                width={480}
-                height={600}
-                loading="lazy"
-                decoding="async"
-              />
-            </figure>
-          </div>
         </header>
 
-        <div ref={listRef} className="faq__list faq-reveal">
-          {FAQ_ITEMS.map((item, index) => {
-            const isOpen = openId === item.id;
-            const panelId = `${baseId}-panel-${item.id}`;
-            const buttonId = `${baseId}-button-${item.id}`;
+        {COLUMNS.map((column, columnIndex) => (
+          <div key={columnIndex} className="faq__list faq-reveal span-6">
+            {column.map((item) => {
+              const isOpen = openIds.has(item.id);
+              const panelId = `${baseId}-panel-${item.id}`;
+              const buttonId = `${baseId}-button-${item.id}`;
 
-            return (
-              <div
-                key={item.id}
-                className={`faq__item${isOpen ? " is-open" : ""}`}
-                style={{ ["--faq-delay" as string]: `${90 + index * 35}ms` }}
-              >
-                <h3 className="faq__question">
-                  <button
-                    id={buttonId}
-                    type="button"
-                    className="faq__trigger"
-                    aria-expanded={isOpen}
-                    aria-controls={panelId}
-                    onClick={() => toggle(item.id)}
-                  >
-                    <span className="faq__question-text">
-                      <span className="faq__index" aria-hidden="true">
-                        {item.id}.
-                      </span>{" "}
-                      {item.question}
-                    </span>
-                    <span className="faq__icon" aria-hidden="true" />
-                  </button>
-                </h3>
-
+              return (
                 <div
-                  id={panelId}
-                  role="region"
-                  aria-labelledby={buttonId}
-                  className="faq__panel"
-                  aria-hidden={!isOpen}
-                  inert={!isOpen ? true : undefined}
+                  key={item.id}
+                  className={`faq__item${isOpen ? " is-open" : ""}`}
                 >
-                  <div className="faq__panel-inner">
-                    <p className="faq__answer">{item.answer}</p>
+                  <h3 className="faq__question">
+                    <button
+                      id={buttonId}
+                      type="button"
+                      className="faq__trigger"
+                      aria-expanded={isOpen}
+                      aria-controls={panelId}
+                      onClick={() => toggle(item.id)}
+                    >
+                      <span className="faq__question-text">
+                        <span className="faq__index" aria-hidden="true">
+                          {item.id}.
+                        </span>{" "}
+                        {item.question}
+                      </span>
+                      <span className="faq__icon" aria-hidden="true" />
+                    </button>
+                  </h3>
+
+                  <div
+                    id={panelId}
+                    role="region"
+                    aria-labelledby={buttonId}
+                    className="faq__panel"
+                    aria-hidden={!isOpen}
+                    inert={!isOpen ? true : undefined}
+                  >
+                    <div className="faq__panel-inner">
+                      <p className="faq__answer">{item.answer}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </section>
   );

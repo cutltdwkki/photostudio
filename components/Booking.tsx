@@ -8,6 +8,7 @@ import {
   useEffectEvent,
 } from "react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useSectionReveal } from "@/hooks/useSectionReveal";
 
 type BurstPhoto = {
   id: string;
@@ -172,6 +173,7 @@ function easeOutCubic(t: number) {
 
 export default function Booking() {
   const sectionRef = useRef<HTMLElement>(null);
+  const { ref: revealRef, revealed } = useSectionReveal<HTMLElement>();
   const stageRef = useRef<HTMLDivElement>(null);
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [progress, setProgress] = useState(0);
@@ -319,13 +321,27 @@ export default function Booking() {
   return (
     <section
       id="booking"
-      ref={sectionRef}
-      className={`booking${reduceMotion ? " is-reduced" : ""}`}
+      ref={(node) => {
+        sectionRef.current = node;
+        revealRef.current = node;
+      }}
+      className={`booking${revealed ? " is-revealed" : ""}${reduceMotion ? " is-reduced" : ""}`}
       aria-label="Заявка на аренду студии"
       style={{ ["--booking-p" as string]: String(progress) }}
     >
       <div className="booking__pin">
         <div className="booking__stage" ref={stageRef}>
+          <div className="booking__bg" aria-hidden="true">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imagePath("фос.png")}
+              alt=""
+              width={1672}
+              height={941}
+              decoding="async"
+            />
+          </div>
+
           <div className="booking__photos" aria-hidden="true">
             {BURST_PHOTOS.map((photo) => (
               <figure
@@ -355,7 +371,7 @@ export default function Booking() {
           <div className="booking__veil" aria-hidden="true" />
 
           <div className="booking__inner">
-            <div className="booking__copy">
+            <div className="booking__copy booking-reveal booking-reveal--copy">
               <h2 className="booking__heading">
                 <span className="booking__heading-line">Твоя идея.</span>
                 <span className="booking__heading-line">Наше пространство.</span>
@@ -368,7 +384,7 @@ export default function Booking() {
               <p className="booking__accent">Твоя съёмка начинается здесь.</p>
             </div>
 
-            <div className="booking__form-wrap">
+            <div className="booking__form-wrap booking-reveal booking-reveal--form">
               {status === "success" ? (
                 <div className="booking__success" role="status" aria-live="polite">
                   <p className="booking__success-title">{statusMessage}</p>

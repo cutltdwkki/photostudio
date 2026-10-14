@@ -80,7 +80,6 @@ export default function Cta() {
   });
   const deadlineRef = useRef<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(ZERO);
-  const [ended, setEnded] = useState(false);
 
   useEffect(() => {
     const deadlineMs = getNearestSundayDeadlineMoscowMs(Date.now());
@@ -89,9 +88,7 @@ export default function Cta() {
     const tick = () => {
       const deadline = deadlineRef.current;
       if (deadline == null) return;
-      const next = getTimeLeft(deadline, Date.now());
-      setTimeLeft(next);
-      setEnded(deadline <= Date.now());
+      setTimeLeft(getTimeLeft(deadline, Date.now()));
     };
 
     tick();
@@ -119,9 +116,6 @@ export default function Cta() {
 
           <div className="cta-reveal cta-reveal--timer">
             <div className="cta__rule" aria-hidden="true" />
-            <p className="cta__timer-label">
-              {ended ? "Предложение завершено" : "Предложение заканчивается через"}
-            </p>
             <div
               className="cta__timer"
               role="timer"
@@ -142,9 +136,6 @@ export default function Cta() {
                 </div>
               ))}
             </div>
-            {!ended ? (
-              <p className="cta__offer">−15% на первое бронирование</p>
-            ) : null}
             <div className="cta__rule" aria-hidden="true" />
           </div>
 

@@ -1,34 +1,39 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useSectionReveal } from "@/hooks/useSectionReveal";
 
-type TileSize = "md" | "tall" | "snug";
-
-type GalleryItem = {
+type Photo = {
   id: string;
   src: string;
   alt: string;
   width: number;
   height: number;
-  /** Vertical tile proportion — all tiles stay portrait. */
-  size: TileSize;
-  /** Crop focus for object-fit: cover */
-  objectPosition?: string;
+};
+
+type RowDirection = "left" | "right";
+
+type GalleryRow = {
+  id: string;
+  direction: RowDirection;
+  duration: string;
+  photos: Photo[];
 };
 
 const imagePath = (filename: string) =>
   `/images/${filename.split("/").map(encodeURIComponent).join("/")}`;
 
-/** All suitable studio photos in the project (excludes icons/SVGs). */
-const GALLERY_ITEMS: GalleryItem[] = [
+/**
+ * Studio, interior, shooting and equipment frames found in the project.
+ * Excludes review portraits and the decorative gallery background.
+ */
+const PHOTOS: Photo[] = [
   {
     id: "hero",
     src: imagePath("hero.png"),
     alt: "Интерьер фотостудии PHOTO DREAM — широкий план пространства",
     width: 1672,
     height: 940,
-    size: "md",
-    objectPosition: "52% 42%",
   },
   {
     id: "photographer",
@@ -36,44 +41,27 @@ const GALLERY_ITEMS: GalleryItem[] = [
     alt: "Съёмка в студии с фотографом",
     width: 1024,
     height: 1536,
-    size: "tall",
-    objectPosition: "50% 28%",
   },
   {
-    id: "story-space",
+    id: "space",
     src: "/images/stories/story-space.jpg",
     alt: "Циклорама и направленный свет в студии",
     width: 864,
     height: 1152,
-    size: "md",
-    objectPosition: "50% 40%",
   },
   {
-    id: "zone",
-    src: imagePath("Фотозона2.jpg"),
-    alt: "Готовая фотозона — интерьер для съёмки",
-    width: 1506,
-    height: 1042,
-    size: "snug",
-    objectPosition: "48% 45%",
-  },
-  {
-    id: "cta",
-    src: "/images/cta.png",
-    alt: "Кинематографичный кадр интерьера студии",
-    width: 864,
-    height: 1152,
-    size: "tall",
-    objectPosition: "55% 35%",
-  },
-  {
-    id: "story-inspiration",
+    id: "inspiration",
     src: "/images/stories/story-inspiration.jpg",
     alt: "Портрет в кинематографичном свете",
     width: 864,
     height: 1152,
-    size: "md",
-    objectPosition: "50% 22%",
+  },
+  {
+    id: "behind",
+    src: "/images/stories/story-behind-scenes.jpg",
+    alt: "Процесс съёмки за кадром",
+    width: 864,
+    height: 1152,
   },
   {
     id: "photostudio",
@@ -81,8 +69,41 @@ const GALLERY_ITEMS: GalleryItem[] = [
     alt: "Пространство студии — общий план интерьера",
     width: 1672,
     height: 941,
-    size: "md",
-    objectPosition: "50% 40%",
+  },
+  {
+    id: "cta",
+    src: "/images/cta.png",
+    alt: "Кинематографичный кадр интерьера студии",
+    width: 864,
+    height: 1152,
+  },
+  {
+    id: "equipment",
+    src: "/images/stories/story-equipment.jpg",
+    alt: "Световое оборудование и камера в студии",
+    width: 864,
+    height: 1152,
+  },
+  {
+    id: "ideas",
+    src: "/images/stories/story-ideas.jpg",
+    alt: "Подготовка декораций и реквизита",
+    width: 864,
+    height: 1152,
+  },
+  {
+    id: "tips",
+    src: "/images/stories/story-tips.jpg",
+    alt: "Настройка студийного света перед съёмкой",
+    width: 864,
+    height: 1152,
+  },
+  {
+    id: "zone",
+    src: imagePath("Фотозона2.jpg"),
+    alt: "Готовая фотозона — интерьер для съёмки",
+    width: 1506,
+    height: 1042,
   },
   {
     id: "sta",
@@ -90,17 +111,6 @@ const GALLERY_ITEMS: GalleryItem[] = [
     alt: "Окно и красный свет в интерьере студии",
     width: 1086,
     height: 1448,
-    size: "tall",
-    objectPosition: "62% 38%",
-  },
-  {
-    id: "story-behind",
-    src: "/images/stories/story-behind-scenes.jpg",
-    alt: "Процесс съёмки за кадром",
-    width: 864,
-    height: 1152,
-    size: "snug",
-    objectPosition: "45% 30%",
   },
   {
     id: "rent",
@@ -108,55 +118,175 @@ const GALLERY_ITEMS: GalleryItem[] = [
     alt: "Аренда студии — свободное пространство",
     width: 759,
     height: 1024,
-    size: "md",
-    objectPosition: "50% 45%",
   },
   {
-    id: "story-equipment",
-    src: "/images/stories/story-equipment.jpg",
-    alt: "Световое оборудование и камера в студии",
-    width: 864,
+    id: "faq-wide",
+    src: imagePath("big.png"),
+    alt: "Зал студии с циклорамой и красным светом",
+    width: 928,
     height: 1152,
-    size: "tall",
-    objectPosition: "50% 35%",
   },
   {
-    id: "story-ideas",
-    src: "/images/stories/story-ideas.jpg",
-    alt: "Подготовка декораций и реквизита",
-    width: 864,
+    id: "faq-chair",
+    src: imagePath("small.png"),
+    alt: "Кресло и свет в интерьере студии",
+    width: 928,
     height: 1152,
-    size: "snug",
-    objectPosition: "50% 40%",
-  },
-  {
-    id: "story-tips",
-    src: "/images/stories/story-tips.jpg",
-    alt: "Настройка студийного света перед съёмкой",
-    width: 864,
-    height: 1152,
-    size: "md",
-    objectPosition: "48% 32%",
   },
 ];
 
-const INITIAL_COUNT = 8;
-const BATCH_COUNT = 5;
+const photo = (id: string) => PHOTOS.find((item) => item.id === id)!;
 
-/* Cache-bust when the background asset is replaced in place */
-const GALLERY_BG_SRC = `${imagePath("фон галерея.png")}?v=233321`;
+function FilmRow({
+  row,
+  onOpen,
+}: {
+  row: GalleryRow;
+  onOpen: (item: Photo) => void;
+}) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [copies, setCopies] = useState(1);
+
+  useLayoutEffect(() => {
+    const rowEl = rowRef.current;
+    if (!rowEl) return;
+
+    const measure = () => {
+      const sequences = [...rowEl.querySelectorAll<HTMLElement>(".gallery__seq")];
+      const unit = sequences[0];
+      if (!unit) return;
+      const shots = [...unit.querySelectorAll<HTMLElement>(".gallery__shot")];
+      if (shots.length === 0) return;
+
+      const view = rowEl.clientWidth;
+      const height = rowEl.clientHeight;
+      if (view < 1 || height < 1) return;
+
+      const ratios = shots.map((shot) => {
+        const raw = getComputedStyle(shot).aspectRatio;
+        if (raw.includes("/")) {
+          const [w, h] = raw.split("/").map(Number);
+          return h > 0 ? w / h : 1;
+        }
+        const ratio = Number(raw);
+        return Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
+      });
+      const widths = ratios.map((ratio) => height * (ratio > 1 ? ratio * 0.75 : ratio));
+
+      sequences.forEach((sequence) => {
+        const frames = sequence.querySelectorAll<HTMLElement>(".gallery__shot");
+        frames.forEach((frame, index) => {
+          const width = widths[index];
+          if (width) frame.style.width = `${width}px`;
+        });
+      });
+
+      const one = unit.getBoundingClientRect().width;
+      if (one < 1) return;
+      const needed = Math.max(1, Math.ceil(view / one));
+      setCopies((current) => (current === needed ? current : needed));
+    };
+
+    measure();
+    const observer = new ResizeObserver(() => {
+      measure();
+    });
+    observer.observe(rowEl);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [copies]);
+
+  const renderSequence = (copy: number, unit: boolean) => (
+    <ul
+      key={copy}
+      className="gallery__seq"
+      data-gallery-unit={unit ? "" : undefined}
+      aria-hidden={copy === 0 ? undefined : true}
+    >
+      {row.photos.map((item) => (
+        <li key={`${item.id}-${copy}`} className="gallery__item">
+          <button
+            type="button"
+            className="gallery__shot"
+            style={{ "--shot-ratio": `${item.width} / ${item.height}` } as CSSProperties}
+            onClick={() => onOpen(item)}
+            aria-label={copy === 0 ? `Открыть фото: ${item.alt}` : undefined}
+            tabIndex={copy === 0 ? undefined : -1}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.src}
+              alt=""
+              className="gallery__image"
+              width={item.width}
+              height={item.height}
+              draggable={false}
+              decoding="async"
+            />
+            <span className="gallery__shade" aria-hidden="true" />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+
+  return (
+    <div
+      ref={rowRef}
+      className={`gallery__row gallery__row--${row.direction}`}
+      style={
+        {
+          "--gallery-duration": row.duration,
+          "--gallery-copies": copies,
+        } as CSSProperties
+      }
+    >
+      <div className="gallery__track">
+        {[0, 1].map((half) => (
+          <div
+            key={half}
+            className="gallery__half"
+            aria-hidden={half === 1 ? true : undefined}
+          >
+            {Array.from({ length: copies }, (_, copy) =>
+              renderSequence(half * copies + copy, half === 0 && copy === 0),
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const ROWS: GalleryRow[] = [
+  {
+    id: "to-left",
+    direction: "left",
+    duration: "40s",
+    photos: ["hero", "photographer", "space", "inspiration", "behind"].map(photo),
+  },
+  {
+    id: "to-right",
+    direction: "right",
+    duration: "50s",
+    photos: ["photostudio", "cta", "equipment", "ideas", "tips"].map(photo),
+  },
+  {
+    id: "to-left-slow",
+    direction: "left",
+    duration: "36s",
+    photos: ["zone", "sta", "rent", "faq-wide", "faq-chair"].map(photo),
+  },
+];
 
 export default function Gallery() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const bgScaleRef = useRef<HTMLDivElement>(null);
+  const { ref: sectionRef, revealed } = useSectionReveal<HTMLElement>({
+    threshold: 0.16,
+  });
   const lightboxRef = useRef<HTMLDialogElement>(null);
-  const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT);
-  const [revealed, setRevealed] = useState(false);
-  const [enteringIds, setEnteringIds] = useState<Set<string>>(() => new Set());
-  const [lightboxItem, setLightboxItem] = useState<GalleryItem | null>(null);
-
-  const visibleItems = GALLERY_ITEMS.slice(0, visibleCount);
-  const hasMore = visibleCount < GALLERY_ITEMS.length;
+  const [lightboxItem, setLightboxItem] = useState<Photo | null>(null);
 
   useEffect(() => {
     const dialog = lightboxRef.current;
@@ -174,7 +304,7 @@ export default function Gallery() {
     if (dialog.open) dialog.close();
   }, [lightboxItem]);
 
-  const openLightbox = (item: GalleryItem) => {
+  const openLightbox = (item: Photo) => {
     setLightboxItem(item);
   };
 
@@ -182,175 +312,24 @@ export default function Gallery() {
     setLightboxItem(null);
   };
 
-  useEffect(() => {
-    const node = sectionRef.current;
-    if (!node) return;
-
-    let cancelled = false;
-    const reveal = () => {
-      queueMicrotask(() => {
-        if (!cancelled) setRevealed(true);
-      });
-    };
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      reveal();
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const rect = node.getBoundingClientRect();
-    if (rect.top < window.innerHeight * 0.88 && rect.bottom > 0) {
-      reveal();
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry?.isIntersecting) return;
-        reveal();
-        observer.disconnect();
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -4% 0px" },
-    );
-
-    observer.observe(node);
-    return () => {
-      cancelled = true;
-      observer.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const section = sectionRef.current;
-    const scaleNode = bgScaleRef.current;
-    if (!section || !scaleNode) return;
-
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return;
-
-    let frame = 0;
-
-    const update = () => {
-      frame = 0;
-      const rect = section.getBoundingClientRect();
-      const viewH = window.innerHeight || 1;
-      /* 0 when section enters bottom of viewport → 1 as it leaves the top */
-      const start = viewH;
-      const end = -rect.height;
-      const progress = Math.min(1, Math.max(0, (start - rect.top) / (start - end)));
-      /* Subtle zoom: 1 → 1.12 */
-      const scale = 1 + progress * 0.12;
-      scaleNode.style.transform = `scale(${scale})`;
-    };
-
-    const onScroll = () => {
-      if (frame) return;
-      frame = window.requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (frame) window.cancelAnimationFrame(frame);
-    };
-  }, []);
-
-  const showMore = () => {
-    const nextCount = Math.min(visibleCount + BATCH_COUNT, GALLERY_ITEMS.length);
-    const newlyShown = GALLERY_ITEMS.slice(visibleCount, nextCount).map((item) => item.id);
-    setEnteringIds(new Set(newlyShown));
-    setVisibleCount(nextCount);
-
-    window.requestAnimationFrame(() => {
-      window.setTimeout(() => setEnteringIds(new Set()), 700);
-    });
-  };
-
   return (
     <section
       id="gallery"
       ref={sectionRef}
       className={`gallery${revealed ? " is-revealed" : ""}`}
-      aria-label="Галерея"
+      aria-labelledby="gallery-heading"
     >
-      <div className="gallery__bg" aria-hidden="true">
-        <div className="gallery__bg-scale" ref={bgScaleRef}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={GALLERY_BG_SRC}
-            alt=""
-            className="gallery__bg-image"
-            width={1086}
-            height={1448}
-            decoding="async"
-          />
-        </div>
-        <div className="gallery__bg-veil" />
-      </div>
+      <div className="gallery__bg" aria-hidden="true" />
+      <header className="gallery__header gallery-reveal">
+        <h2 id="gallery-heading" className="gallery__heading">
+          Галерея
+        </h2>
+      </header>
 
-      <div className="gallery__inner">
-        <header className="gallery__header gallery-reveal">
-          <h2 className="gallery__heading">Галерея</h2>
-          <p className="gallery__eyebrow">Кадры из студии</p>
-        </header>
-
-        <div className="gallery__masonry" role="list">
-          {visibleItems.map((item, index) => {
-            const isEntering = enteringIds.has(item.id);
-            const isInitial = index < INITIAL_COUNT;
-            return (
-              <figure
-                key={item.id}
-                className={`gallery__item gallery__item--${item.size}${isInitial ? " gallery-reveal" : ""}${isEntering ? " is-entering" : ""}`}
-                style={
-                  isInitial
-                    ? { ["--gallery-delay" as string]: `${Math.min(index, 11) * 40}ms` }
-                    : undefined
-                }
-                role="listitem"
-              >
-                <button
-                  type="button"
-                  className="gallery__trigger"
-                  onClick={() => openLightbox(item)}
-                  aria-label={`Открыть фото: ${item.alt}`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={item.src}
-                    alt=""
-                    className="gallery__image"
-                    width={item.width}
-                    height={item.height}
-                    style={{
-                      objectPosition: item.objectPosition ?? "50% 40%",
-                    }}
-                    loading={index < INITIAL_COUNT ? "eager" : "lazy"}
-                    decoding="async"
-                  />
-                  <span className="gallery__shade" aria-hidden="true" />
-                </button>
-              </figure>
-            );
-          })}
-        </div>
-
-        {hasMore ? (
-          <div className="gallery__actions gallery-reveal">
-            <button type="button" className="gallery__more" onClick={showMore}>
-              Показать ещё
-            </button>
-          </div>
-        ) : null}
+      <div className="gallery__rows">
+        {ROWS.map((row) => (
+          <FilmRow key={row.id} row={row} onOpen={openLightbox} />
+        ))}
       </div>
 
       <dialog

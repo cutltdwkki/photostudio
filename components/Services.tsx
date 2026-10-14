@@ -80,12 +80,12 @@ function buildMonthDays(
 const CALENDAR_GROUPS: MonthGroup[] = [
   {
     key: "2026-10",
-    label: "ОКТЯБРЯ",
+    label: "Октябрь",
     days: buildMonthDays(2026, 10, 13, 31),
   },
   {
     key: "2026-11",
-    label: "НОЯБРЯ",
+    label: "Ноябрь",
     days: buildMonthDays(2026, 11, 1, 12),
   },
 ];

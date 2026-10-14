@@ -32,7 +32,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ru"
       className={`${golosText.variable} ${russoOne.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <div className="grid-preview" aria-hidden="true">
+          <div className="grid-preview__cols">
+            {Array.from({ length: 12 }, (_, i) => (
+              <span key={i} />
+            ))}
+          </div>
+        </div>
+        {children}
+      </body>
     </html>
   );
 }

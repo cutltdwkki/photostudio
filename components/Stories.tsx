@@ -11,7 +11,6 @@ import { useSectionReveal } from "@/hooks/useSectionReveal";
 
 type Story = {
   id: string;
-  category: string;
   title: string;
   description: string;
   image: string;
@@ -22,7 +21,6 @@ type Story = {
 const STORIES: Story[] = [
   {
     id: "space",
-    category: "Пространство",
     title: "Место, где идеи становятся кадрами",
     description:
       "Свет, фон и немного смелости — всё остальное зависит от твоей фантазии.",
@@ -32,7 +30,6 @@ const STORIES: Story[] = [
   },
   {
     id: "behind",
-    category: "За кадром",
     title: "Как проходит съёмка в PHOTO DREAM",
     description:
       "От первых настроек света до последнего кадра — пространство для твоего творческого процесса.",
@@ -42,7 +39,6 @@ const STORIES: Story[] = [
   },
   {
     id: "inspiration",
-    category: "Вдохновение",
     title: "Необычный свет. Твой собственный стиль.",
     description:
       "Экспериментируй с образами, пробуй новые ракурсы и создавай фотографии, которые хочется пересматривать.",
@@ -51,7 +47,6 @@ const STORIES: Story[] = [
   },
   {
     id: "tips",
-    category: "Советы",
     title: "Как подготовиться к съёмке и не потеряться",
     description:
       "Что взять с собой, как выбрать образы и использовать время в студии по максимуму.",
@@ -60,7 +55,6 @@ const STORIES: Story[] = [
   },
   {
     id: "equipment",
-    category: "Студия изнутри",
     title: "Больше, чем просто фон",
     description:
       "Знакомься с пространством, световым оборудованием и возможностями студии перед бронированием.",
@@ -69,7 +63,6 @@ const STORIES: Story[] = [
   },
   {
     id: "ideas",
-    category: "Идеи",
     title: "Одна студия — десятки разных историй",
     description:
       "Портреты, контент для брендов, творческие проекты — вдохновение начинается с идеи.",
@@ -234,12 +227,10 @@ export default function Stories() {
       aria-labelledby="stories-heading"
     >
       <div className="stories__inner">
-        <h2 id="stories-heading" className="stories__heading stories-reveal">
-          Истории
-        </h2>
-
         <div className="stories__toolbar stories-reveal stories-reveal--toolbar">
-          <p className="stories__eyebrow">Из жизни студии</p>
+          <h2 id="stories-heading" className="stories__heading">
+            Истории
+          </h2>
           <div className="stories__nav" role="group" aria-label="Навигация по историям">
             <button
               type="button"
@@ -247,18 +238,21 @@ export default function Stories() {
               onClick={() => scrollByCard(-1)}
               disabled={!canPrev}
             >
+              <span className="stories__nav-arrow" aria-hidden="true">
+                ←
+              </span>
               Назад
             </button>
-            <span className="stories__nav-sep" aria-hidden="true">
-              /
-            </span>
             <button
               type="button"
-              className="stories__nav-btn"
+              className="stories__nav-btn stories__nav-btn--next"
               onClick={() => scrollByCard(1)}
               disabled={!canNext}
             >
               Вперёд
+              <span className="stories__nav-arrow" aria-hidden="true">
+                →
+              </span>
             </button>
           </div>
         </div>
@@ -297,7 +291,6 @@ export default function Stories() {
                     <span className="stories__badge">New</span>
                   ) : null}
                   <div className="stories__card-copy">
-                    <p className="stories__category">{story.category}</p>
                     <div className="stories__card-title-row">
                       <h3 className="stories__card-title">{story.title}</h3>
                       <span className="stories__arrow" aria-hidden="true">
